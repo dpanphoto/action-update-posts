@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 const core = require('@actions/core');
 const GhostAdminApi = require('@tryghost/admin-api');
+const fs = require('fs');
 
 const getValue = () => {
     let value = core.getInput('value');
@@ -18,10 +19,10 @@ const calculateDaysSince = (date) => {
     return Math.round((now - then) / (1000 * 60 * 60 * 24));
 };
 
-const updated = [];
-let skipped = 0;
-
 (async function main() {
+    const updated = [];
+    let skipped = 0;
+
     try {
         const api = new GhostAdminApi({
             url: core.getInput('api-url'),
@@ -32,11 +33,14 @@ let skipped = 0;
         const tag = core.getInput('tag');
         const field = core.getInput('field');
         const value = getValue();
-        const days = core.getInput('days');
+        const days = parseInt(core.getInput('days'), 10);
 
-        const posts = await api.posts.browse({filter: `tag:${tag},status:published`, limit: 'all', include: 'tags'});
+        const allPosts = await api.posts.browse({filter: `tag:${tag}`, limit: 'all', include: 'tags'});
+        const posts = allPosts.filter(post => post.status === 'published');
 
-        await Promise.all(posts.map(async (post) => {
+        console.log(`Found ${allPosts.length} total posts with tag, ${posts.length} are published.`);
+
+        for (const post of posts) {
             const differenceInDays = calculateDaysSince(post.published_at);
             console.log(`Post "${post.title}" published ${differenceInDays} days ago`);
 
@@ -49,9 +53,8 @@ let skipped = 0;
                 console.log(`Not updating post "${post.title}", ${days - differenceInDays + 1} days to go`);
                 skipped++;
             }
-        }));
+        }
 
-        const fs = require('fs');
         const summary = [
             `## Run Summary`,
             `- **Posts checked:** ${posts.length}`,
@@ -59,6 +62,7 @@ let skipped = 0;
             `- **Posts skipped:** ${skipped}`,
             updated.length > 0 ? `\n### Updated posts\n${updated.map(t => `- ${t}`).join('\n')}` : ''
         ].join('\n');
+
         fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
         console.log(`\nUpdated ${updated.length} post(s).`);
 
