@@ -34,7 +34,7 @@ let skipped = 0;
         const value = getValue();
         const days = core.getInput('days');
 
-        const posts = await api.posts.browse({filter: `tag:${tag}+status:published`, limit: 'all', include: 'tags'});
+        const posts = await api.posts.browse({filter: `tag:${tag},status:published`, limit: 'all', include: 'tags'});
 
         await Promise.all(posts.map(async (post) => {
             const differenceInDays = calculateDaysSince(post.published_at);
