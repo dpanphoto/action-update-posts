@@ -36,7 +36,7 @@ const calculateDaysSince = (date) => {
         const days = parseInt(core.getInput('days'), 10);
 
         const allPosts = await api.posts.browse({filter: `tag:${tag}`, limit: 'all', include: 'tags'});
-        const posts = allPosts.filter(post => post.status === 'published');
+        const posts = allPosts.filter(post => post.status === 'published' && post.visibility !== value);
 
         console.log(`Found ${allPosts.length} total posts with tag, ${posts.length} are published.`);
 
